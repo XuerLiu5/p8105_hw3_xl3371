@@ -7,6 +7,7 @@ output: github_document
 ```{r, message=FALSE}
 library(tidyverse)
 library(ggplot2)
+library(p8105.datasets)
 ```
 
 ```{r setup, include=FALSE}
@@ -16,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE,
                       fig.height = 6,
                       out.width = "90%")
 
-theme_set(theme_minimal())
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
 options(
   ggplot2.continuous.colour = "viridis",
@@ -32,16 +33,14 @@ scale_fill_discrete = scale_fill_viridis_d
 
 Load the data for Problem 1
 ```{r}
-library(p8105.datasets)
 data("instacart")
 ```
 
 ### Short description of the dataset
 The `instacart` dataset contains `r nrow(instacart)` observations and `r ncol(instacart)` variables. \
 Examples of key variables in this dataset includes `product_id`, `user_id`, `product_name`, `aisle_id`, and etc. \
-
-
-
+Each row resprenting a single product from an instacart order.\
+Variables include identifiers for user, order, and product; the order in which each product was added to the cart. There are several order-level variables, describing the day and time of the order, and number of days since prior order. Then there are several item-specific variables, describing the product name (e.g. Yogurt, Avocado), department (e.g. dairy and eggs, produce), and aisle (e.g. yogurt, fresh fruits), and whether the item has been ordered by this user in the past. In total, there are `r instacart |> select(product_id) |> distinct() |> count()` products found in `r instacart |> select(user_id, order_id) |> distinct() |> count()` orders from `r instacart |> select(user_id) |> distinct() |> count()` distinct users.
 
 ### Number of aisles, and most items ordered from aisles
 ```{r, message=FALSE}
@@ -51,6 +50,7 @@ instacart_aisle =
   summarize(n_orders = n()) %>%
   arrange(desc(n_orders))
 ```
+
 There are `r nrow(instacart_aisle)` aisles. The aisle with the most items ordered is `r instacart_aisle$aisle[1]` with `r instacart_aisle$n_orders[1]`.
 
 ### Plot showing the number of items ordered in each aisle
@@ -63,9 +63,10 @@ instacart %>%
   labs(title = "Number of items ordered in each aisle", 
        x = "Aisle", 
        y = "Number of items") +
-  theme_bw() +
   coord_flip() 
 ```
+
+In the above plot, aisles are ordered by ascending number of items.
 
 ### Table showing the three most popular items
 ```{r}
@@ -79,6 +80,10 @@ instacart %>%
   knitr::kable()
 ```
 
+* In `packaged vegatables fruits` aisle, `Organic Baby Spinach`, `Organic Raspberries`, and `Organic Blueberries` were purchased the most. 
+* In `baking ingredients` aisle, `Light Brown Sugar`, `Pure Baking Soda`, and `Cane Sugar` were purchased the most. 
+* In `dog food care` aisle, `Snack Sticks Chicken & Rice Recipe Dog Treatsv`, `Organix Chicken & Brown Rice RecipeOrganix Chicken & Brown Rice Recipev`, and `Small Dog Biscuits` were purchased the most.
+
 ### Table showing the mean hour of the day 
 ```{r, message=FALSE}
 instacart %>%
@@ -90,13 +95,12 @@ instacart %>%
     values_from = mean_hour) %>%
   knitr::kable(digits = 2)
 ```
-
+`Pink Lady Apples` has smaller mean hour of the day that are ordered on each day of the week.
 
 ## Problem 2
 
 Load the data for Problem 2
 ```{r}
-library(p8105.datasets)
 data("brfss_smart2010")
 ```
 
@@ -132,19 +136,18 @@ brfss_clean %>%
   pull(locationabbr)
 ```
 
-In 2002, states includes CT, FL, MA, NC, NJ, and PA were observed at 7 or more locations.\
-In 2010, states includes CA, CO, FL, MA, MD, NC, NE, NJ, NY, OH, PA, SC, TX, and WA were observed at 7 or more locations.
+* In 2002, states includes CT, FL, MA, NC, NJ, and PA were observed at 7 or more locations.
+* In 2010, states includes CA, CO, FL, MA, MD, NC, NE, NJ, NY, OH, PA, SC, TX, and WA were observed at 7 or more locations.
 
-### Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. 
+### Dataset limits to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. 
 ```{r, message=FALSE}
+# dataset limits to Excellent responses
 excellent_df = brfss_clean %>%
   filter(response == 'Excellent') %>%
   group_by(year, locationabbr) %>%
   summarise(data_value_mean = mean(data_value, na.rm = TRUE))
-```
 
-### “Spaghetti” plot
-```{r}
+# “Spaghetti” plot
 excellent_df %>%
   ggplot(aes(x = year, y = data_value_mean, group = locationabbr, color = locationabbr)) +
   geom_line() +
@@ -153,8 +156,11 @@ excellent_df %>%
        y = "Average Value",
        color = "State")
 ```
+For the “Spaghetti” plot:
 
-Above is the “spaghetti” plot shows the average data value over time within each state and it only relates the response of `Excellent`. 
+* There's a high degree of variability in average values among different states.
+* There's a particular state that shows a sharp decline in average value around 2005.
+* In 2006, there seems to be a convergence of average values.
 
 ### Two-panel plot
 ```{r}
@@ -168,7 +174,13 @@ brfss_clean %>%
   facet_wrap(~year, ncol = 2)
 ```
 
-Above is the two-panel plot which shows distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State for 2006 and 2010. 
+Above is the two-panel plot which shows distribution of `data_value` for responses (“Poor” to “Excellent”) among locations in NY State for 2006 and 2010. 
+
+* The distributions of "Excellent" are relatively the same for both years. 
+* For both year, "Good" and "very good" responses have the highest data values.
+* For both year, responses categorized as `Poor` have the lowest data values with a compact distribution.
+* For both year, as the quality of the response improves (from `Poor` to `Excellent`), the median data value generally increases.
+
 
 ## Problem 3
 
@@ -184,11 +196,11 @@ covar_data = read_csv("./data/nhanes_covar.csv", skip = 4) %>%
                  "1" = "male",
                  "2" = "female"),
     education = recode(education,
-                       "1" = "Level 1",
-                       "2" = "Level 2",
-                       "3" = "Level 3"),
-    sex = factor(sex), 
-    education = factor(education)
+                       "1" = "Less than high school",
+                       "2" = "High school equivalent",
+                       "3" = "More than high school"),
+    sex = as.factor(sex), 
+    education = as.factor(education)
   )
 ```
 
@@ -198,29 +210,95 @@ accel_data = read_csv("./data/nhanes_accel.csv") %>%
   janitor::clean_names() %>%
   pivot_longer(
     min1:min1440,
-    names_to = "number_of_time",
-    values_to = "activity_time",
+    names_to = "minute",
+    values_to = "activity",
     names_prefix = "min"
   )
 ```
 
 ```{r}
 # merge the above two data sets
-data_merge = left_join(covar_data, accel_data, by = "seqn")
+data_merge = left_join(covar_data, accel_data, by = "seqn") %>%
+  mutate(minute = as.numeric(minute))
 ```
+
+The merged dataset contains `r nrow(data_merge)` rows and `r ncol(data_merge)` columns, with each row represents a single participants. Key variables includes `sex`, `age`, `education`, `bmi`, and variables relates to MIMS.
 
 ### Table for the number of men and women in each education category Comment on these items.
 ```{r, message=FALSE}
-data_merge |>
-  group_by(sex, education) |>
-  summarise(count = n()) |>
+data_merge %>%
+  group_by(sex, education) %>%
+  summarise(count = n()) %>%
   knitr::kable(digits = 1)
 ```
+The above table shows the age distributinos for men and women in each education category. \
+For both men and women, the education level `More than high school` has the largest number of people.
 
 ### Visualization of the age distributions for men and women in each education category.
 ```{r}
 data_merge %>%
   ggplot(aes(x = education, y = age, fill = sex)) +
   geom_boxplot() +
-  labs(title = "Age Distribution by Education and Gender", x = "Education", y = "Age")
+  labs(title = "Age Distribution by Education and Gender", x = "Education", y = "Age") +
+  scale_fill_manual(values = c("male" = "blue", "female" = "pink"))
+```
+
+From the above boxplot of the age distributions for men and women in each education category: \
+
+* People with `More than high school` education category are the youngest compare to the other two categories.
+* Women with `High school equivalent` education level have slightly higher median age than men have.
+* The median age for females with `Less than high school` level is slightly lower than for males.
+
+### Plot showing total activities against age for men and women of each education level
+```{r, message=FALSE}
+data_merge %>%
+  group_by(seqn, sex, age, education) %>%
+  summarize(total_activity = sum(activity)) %>%
+  ggplot(aes(x = age, y = total_activity, fill = sex, color = sex)) +
+  geom_point(alpha = 0.4, shape = 21) +
+  geom_smooth(se = FALSE) +
+  scale_fill_manual(values = c("male" = "blue", "female" = "pink")) +
+  scale_color_manual(values = c("male" = "darkblue", "female" = "deeppink")) +
+  facet_grid(.~ education) +
+  labs(
+    x = "Age",
+    y = "Total Activity over the Day",
+    title = "Total Activities Against Age for Men and Women of Each Education Level"
+  )
+```
+The above three-panel plot shows the total activity level against age for each education. \
+
+* By looking at the trend lines, there are overall declines in total activity over the day in all three education levels as the age increases for male and female. 
+* For `High school equivalent` and `More than high school` levels, females have relative higher activity value.
+* In `High school equivalent` level, both males and females exhibit a peak in activity around the age of 40.
+
+
+### Three-panel plot showing the 24-hour activity time courses for each education level and use color to indicate sex.
+```{r, message=FALSE}
+data_merge %>%
+  ggplot(aes(x = minute, y = activity, group = seqn, color = sex)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(aes(group = sex), se = FALSE) +
+  scale_fill_manual(values = c("male" = "blue", "female" = "pink")) +
+  scale_color_manual(values = c("male" = "darkblue", "female" = "deeppink")) +
+  facet_grid(. ~ education) +
+  labs(title = "24-hour Activity Time Courses", x = "Minute", y = "Activity") +
+  scale_x_continuous(
+    limits = c(0, 1440), 
+    breaks = seq(0, 1440, 120)
+  ) 
+```
+
+The above three-panel plot shows the 24-hour activity time courses for each education level and male and female. 
+
+* For all education levels, it appears that females tend to have a slightly higher activity level than males.
+* Both females and males have relative higher activity in the middle of the day.
+* There are some extreme high activity value for both male and female in `More than high school` education level.
+
+
+
+
+
+
+
 
